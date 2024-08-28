@@ -107,8 +107,8 @@ fn parse_user_profile(profile: &Value, info: &Value) -> Result<UserData, &'stati
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
-    let start_id = args[0].parse::<i32>().unwrap();
-    let end_id = args[1].parse::<i32>().unwrap();
+    let start_id = args[1].parse::<i32>().unwrap();
+    let end_id = args[2].parse::<i32>().unwrap();
 
     let mut csv_file = File::create(format!("box3-user-data-{}-to-{}.csv", start_id, end_id)).unwrap();
     csv_file.write(b"bid, name, intro, birthday, gender, region\n").unwrap();
