@@ -128,10 +128,10 @@ async fn query(start_id: i32, end_id: i32) -> () {
         let dur = tokio::time::Instant::now() - start;
         println!("id: {}, request time: {:?}", i, dur);
 
-        if dur >= Duration::from_millis(1500) {
-            println!("request time too long. sleep 1min and continue.");
-            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
-        }
+        // if dur >= Duration::from_millis(1500) {
+        //     println!("request time too long. sleep 1min and continue.");
+        //     tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+        // }
 
         if !check_res(&profile) || !check_res(&profile_info){
             continue;
