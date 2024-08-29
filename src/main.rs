@@ -1,4 +1,4 @@
-use std::{env, fmt::Debug, fs::File, io::Write, time::Duration};
+use std::{env, fmt::Debug, fs::{self, File}, io::Write, process::exit, time::Duration};
 
 use serde_json::Value;
 
@@ -16,7 +16,7 @@ struct UserData{
 
 impl UserData {
     fn to_string(&self) -> String {
-        format!("{}, {}, {}, {}, {}, {}\n", self.bid, self.name, self.intro.replace('\n', " "), self.birthday, self.gender, self.region)
+        format!("{}, {}, {}, {}, {}, {}\n", self.bid, self.name, self.intro.replace('\n', " ").replace(',', "，"), self.birthday, self.gender, self.region)
     }
 }
 
@@ -104,12 +104,17 @@ fn parse_user_profile(profile: &Value, info: &Value) -> Result<UserData, &'stati
     Ok(UserData { bid, name, intro, birthday, gender, region })
 }
 
-#[tokio::main]
-async fn main() {
-    let args: Vec<String> = env::args().collect();
-    let start_id = args[1].parse::<i32>().unwrap();
-    let end_id = args[2].parse::<i32>().unwrap();
+fn help() -> () {
+    println!(r"
+    Mapping Box3 user data.
+    Usage:
+        query <start_id> <end_id> query user data from start_id to end_id.
+        merge                     merge all datas to one file.
+        help                      show help.
+    ");
+}
 
+async fn query(start_id: i32, end_id: i32) -> () {
     let mut csv_file = File::create(format!("box3-user-data-{}-to-{}.csv", start_id, end_id)).unwrap();
     csv_file.write(b"bid, name, intro, birthday, gender, region\n").unwrap();
 
@@ -137,5 +142,67 @@ async fn main() {
 
         // 500ms is the best delay time according to test.
         tokio::time::sleep_until(start + Duration::from_millis(500)).await;
+    }    
+}
+
+fn merge() -> () {
+    let mut csv_file = File::create("box3-user-data.csv").unwrap();
+    csv_file.write(b"bid, name, intro, birthday, gender, region\n").unwrap();
+
+
+    // search all files by a regexp
+    let files = fs::read_dir(env::current_dir().unwrap())
+        .unwrap()
+        .filter(|s| {
+            match s {
+                Ok(s) => s.file_name()
+                    .into_string()
+                    .unwrap()
+                    .contains("box3-user-data-"),
+                Err(_) => false
+            }
+        });
+    
+    for file in files {
+        let lines = fs::read_to_string(file.unwrap().file_name());
+        for line in lines.unwrap().lines() {
+            if line == "bid, name, intro, birthday, gender, region" {
+                continue;
+            }
+            csv_file.write(line.as_bytes()).unwrap();
+            csv_file.write(b"\n").unwrap();
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let args: Vec<String> = env::args().collect();
+    let cmd = args[1].parse::<String>();
+    let cmd = match cmd {
+        Ok(cmd) => cmd,
+        Err(_) => {
+            println!("Invalid command.");
+            help();
+            exit(1);
+        }
+    };
+    match cmd.as_str() {
+        "query" => {
+            if args.len() != 4 {
+                help();
+                exit(1);
+            }
+            let start_id = args[2].parse::<i32>().unwrap();
+            let end_id = args[3].parse::<i32>().unwrap();
+            query(start_id, end_id).await;
+        },
+        "merge" => {
+            merge();
+        },
+        _ => {
+            help();
+            exit(1);
+        }
     }
 }
