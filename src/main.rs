@@ -134,5 +134,8 @@ async fn main() {
         let result = parse_user_profile(&profile, &profile_info).unwrap();
         println!("{:?}", result);
         csv_file.write(result.to_string().as_bytes()).unwrap();
+
+        // 500ms is the best delay time according to test.
+        tokio::time::sleep_until(start + Duration::from_millis(500)).await;
     }
 }
